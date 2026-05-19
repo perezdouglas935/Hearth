@@ -1,0 +1,134 @@
+generator client {
+    provider = "prisma-client-js"
+    binaryTargets = ["native", "linux-musl-arm64-openssl-3.0.x"]
+    output = "/home/ubuntu/hearth/nextjs_space/node_modules/.prisma/client"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model DemoUser {
+  id           String          @id @default(cuid())
+  displayName  String
+  avatar       String
+  createdAt    DateTime        @default(now())
+
+  tasks        Task[]
+  events       Event[]
+  goals        Goal[]
+  habits       Habit[]
+  habitLogs    HabitLog[]
+  journalEntries JournalEntry[]
+  moodEntries  MoodEntry[]
+}
+
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  project     String
+  priority    String    @default("medium") // low, medium, high
+  completed   Boolean   @default(false)
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerId     String?   // null = seeded demo data, string = belongs to a DemoUser
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([dueDate])
+}
+
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime?
+  category    String    @default("personal") // work, personal, health, social
+  location    String?
+  createdAt   DateTime  @default(now())
+
+  ownerId     String?
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([startTime])
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  category    String    @default("personal") // health, career, personal, financial
+  progress    Int       @default(0) // 0 to 100
+  targetDate  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerId     String?
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+}
+
+model Habit {
+  id          String    @id @default(cuid())
+  name        String
+  icon        String    @default("sparkles")
+  color       String    @default("#C67B5C")
+  createdAt   DateTime  @default(now())
+
+  ownerId     String?
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  logs        HabitLog[]
+
+  @@index([ownerId])
+}
+
+model HabitLog {
+  id          String    @id @default(cuid())
+  habitId     String
+  habit       Habit     @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date        DateTime  // date of completion (date-only stored as midnight UTC)
+  completed   Boolean   @default(true)
+
+  ownerId     String?
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([habitId, date])
+  @@index([ownerId])
+  @@index([date])
+}
+
+model JournalEntry {
+  id          String    @id @default(cuid())
+  title       String
+  content     String
+  mood        String    @default("neutral") // happy, calm, neutral, sad, frustrated
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  ownerId     String?
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model MoodEntry {
+  id          String    @id @default(cuid())
+  mood        String    // happy, calm, neutral, sad, frustrated
+  date        DateTime  // unique per (owner, date)
+  note        String?
+
+  ownerId     String?
+  owner       DemoUser? @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@index([date])
+}
